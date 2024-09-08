@@ -203,9 +203,19 @@ curl -sk -X POST "https://localhost:10250/checkpoint/default/webserver/webserver
 ls -l /var/lib/kubelet/checkpoints
 ```
 
+We can use [checkpointctl](https://github.com/checkpoint-restore/checkpointctl) 
+
+```sh
+git clone https://github.com/checkpoint-restore/checkpointctl.git
+cd checkpointctl
+make
+sudo make install
+```
+
 #### 15. Restore the Pod
 
 ```sh
+sudo apt-get -y install buildah
 newcontainer=$(buildah from scratch)
 buildah add $newcontainer /var/lib/kubelet/checkpoints/checkpoint-<pod-name>_<namespace-name>-<container-name>-<timestamp>.tar /
 buildah config --annotation=io.kubernetes.cri-o.annotations.checkpoint.name=<container-name> $newcontainer
