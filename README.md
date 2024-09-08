@@ -116,6 +116,12 @@ sudo apt-mark hold kubelet kubeadm kubectl
 ```sh
 kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/crio/crio.sock  --ignore-preflight-errors=NumCPU
 
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+export KUBECONFIG=/etc/kubernetes/admin.conf
+kubectl cluster-info dump
+
 kubectl get nodes -o wide
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 ```
