@@ -91,7 +91,7 @@ sudo export DEBIAN_FRONTEND=noninteractive apt-get install -y \
   libudev-dev \
   software-properties-common
 
-sudo apt-get install -qq -y cri-o cri-o-runc cri-tools
+sudo apt-get install -qq -y cri-o cri-tools
 
 systemctl daemon-reload
 systemctl enable --now crio
