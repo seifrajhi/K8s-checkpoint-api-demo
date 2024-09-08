@@ -71,7 +71,26 @@ echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:
 curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.28:/1.28.0/xUbuntu_20.04/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
 curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
 
-sudo apt-get update 
+sudo apt-get update
+sudo apt-get update -qq
+sudo export DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  libbtrfs-dev \
+  containers-common \
+  git \
+  libassuan-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libsystemd-dev \
+  libselinux1-dev \
+  pkg-config \
+  go-md2man \
+  cri-o-runc \
+  libudev-dev \
+  software-properties-common
+
 sudo apt-get install -qq -y cri-o cri-o-runc cri-tools
 
 systemctl daemon-reload
@@ -83,21 +102,25 @@ systemctl enable --now crio
 ```sh
 mkdir -p /etc/apt/keyrings/
 
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
 sudo apt-get update
-sudo apt install -y kubeadm=1.28.1-1.1 kubelet=1.28.1-1.1 kubectl=1.28.1-1.1
+sudo apt-get install kubelet kubeadm kubectl -y
+sudo systemctl enable --now kubelet
+sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
 #### 7. Initialize Kubernetes Cluster
 
 ```sh
-kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/crio/crio.sock --feature-gates=ContainerCheckpoint=true --ignore-preflight-errors=NumCPU
+kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/crio/crio.sock  --ignore-preflight-errors=NumCPU
 
 kubectl get nodes -o wide
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 ```
+
+PS: if you are using a k8s version lower than v1.30, add `--feature-gates ContainerCheckpoint=true` to the `kubeadm init` coomand.
 
 #### 8. Install CRIU
 
