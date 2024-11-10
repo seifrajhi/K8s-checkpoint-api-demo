@@ -73,7 +73,18 @@ print_message $YELLOW "Disabling UFW..."
 ufw disable
 sleep 1
 
+# Remove unnecessary packages
+print_message $YELLOW "Removing unnecessary packages..."
+sudo apt-get remove containernetworking-plugins -y && sudo apt-get remove conmon -y
+sleep 1
+
+# Create keyrings directory
+print_message $YELLOW "Creating keyrings directory..."
+mkdir -p /etc/apt/keyrings/
+sleep 1
+
 # Install containerd
+
 apt-get update
 
 # Download and install containerd
