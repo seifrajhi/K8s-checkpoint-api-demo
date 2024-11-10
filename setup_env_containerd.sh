@@ -73,58 +73,62 @@ print_message $YELLOW "Disabling UFW..."
 ufw disable
 sleep 1
 
-# Remove unnecessary packages
-print_message $YELLOW "Removing unnecessary packages..."
-sudo apt-get remove containernetworking-plugins -y && sudo apt-get remove conmon -y
-sleep 1
+# Install containerd
+apt-get update
 
-# Create keyrings directory
-print_message $YELLOW "Creating keyrings directory..."
-mkdir -p /etc/apt/keyrings/
-sleep 1
+# Download and install containerd
+wget https://github.com/containerd/containerd/releases/download/v2.0.0/containerd-2.0.0-linux-amd64.tar.gz
+tar -C /usr/local -xzvf containerd-2.0.0-linux-amd64.tar.gz
 
-# Add CRI-O repository and install CRI-O
-print_message $YELLOW "Adding CRI-O repository and installing CRI-O..."
-OS=xUbuntu_20.04
-CRIO_VERSION=1.28
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.list
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:1.28/xUbuntu_20.04/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
-sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install -y \
-  libbtrfs-dev \
-  git \
-  containers-common \
-  libassuan-dev \
-  libglib2.0-dev \
-  libc6-dev \
-  libgpgme-dev \
-  libgpg-error-dev \
-  libseccomp-dev \
-  libsystemd-dev \
-  libselinux1-dev \
-  pkg-config \
-  go-md2man \
-  libudev-dev \
-  software-properties-common \
-  gcc \
-  make \
-  cri-o \
-  cri-tools \
-  cri-o-runc
-sleep 1
+# Create systemd service file for containerd
+mkdir -p /usr/local/lib/systemd/system/
+cat <<EOF > /usr/local/lib/systemd/system/containerd.service
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target local-fs.target dbus.service
 
-# Output version of CRI-O
-print_message $BLUE "CRI-O version:"
-crio --version
-sleep 1
+[Service]
+ExecStartPre=-/sbin/modprobe overlay
+ExecStart=/usr/local/bin/containerd
 
-# Enable and start CRI-O
-print_message $YELLOW "Enabling and starting CRI-O..."
+Type=notify
+Delegate=yes
+KillMode=process
+Restart=always
+RestartSec=5
+
+# Having non-zero Limit*s causes performance problems due to accounting overhead
+# in the kernel. We recommend using cgroups to do container-local accounting.
+LimitNPROC=infinity
+LimitCORE=infinity
+
+# Comment TasksMax if your systemd version does not supports it.
+# Only systemd 226 and above support this version.
+TasksMax=infinity
+OOMScoreAdjust=-999
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd, enable and start containerd
 systemctl daemon-reload
-systemctl enable --now crio
-sleep 1
+systemctl enable --now containerd
+
+# Download and install runc
+wget https://github.com/opencontainers/runc/releases/download/v1.2.1/runc.amd64
+install -m 755 runc.amd64 /usr/local/sbin/runc
+
+# Download and install CNI plugins
+wget https://github.com/containernetworking/plugins/releases/download/v1.6.0/cni-plugins-linux-amd64-v1.6.0.tgz
+mkdir -p /opt/cni/bin
+tar -C /opt/cni/bin -xzvf cni-plugins-linux-amd64-v1.6.0.tgz
+
+# Verify containerd installation
+containerd -v
+
+
 
 # Add Kubernetes repository and install Kubernetes components
 print_message $YELLOW "Adding Kubernetes repository and installing components..."
