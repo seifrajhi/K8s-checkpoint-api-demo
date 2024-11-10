@@ -23,7 +23,7 @@ if ! command -v figlet &> /dev/null || ! command -v toilet &> /dev/null; then
 fi
 
 # Print the title using figlet
-figlet -f smblock "Script to setup forensic container checkpointing with CRIU in Kubernetes 1.30 and cri-o runtime v1.28"
+figlet -f smblock "Script to setup forensic container checkpointing with CRIU in Kubernetes 1.31 and coontainerd runtime v2.0"
 
 # Prompt the user for confirmation
 echo "Do you wish to continue?"
@@ -132,8 +132,8 @@ containerd -v
 
 # Add Kubernetes repository and install Kubernetes components
 print_message $YELLOW "Adding Kubernetes repository and installing components..."
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 sudo apt-get update
 sudo apt-get install kubelet kubeadm kubectl -y
 sudo apt-mark hold kubelet kubeadm kubectl
