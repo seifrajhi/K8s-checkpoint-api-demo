@@ -23,7 +23,7 @@ if ! command -v figlet &> /dev/null || ! command -v toilet &> /dev/null; then
 fi
 
 # Print the title using figlet
-figlet -f smblock "Script to setup forensic container checkpointing with CRIU in Kubernetes 1.31 and coontainerd runtime v2.0"
+figlet -f smblock "Script to setup forensic container checkpointing with CRIU in Kubernetes 1.30 and containerd runtime"
 
 # Prompt the user for confirmation
 echo "Do you wish to continue?"
@@ -51,7 +51,7 @@ sleep 1
 
 # Load necessary kernel modules
 print_message $YELLOW "Loading kernel modules..."
-cat >>/etc/modules-load.d/crio.conf<<EOF
+cat >>/etc/modules-load.d/containerd.conf<<EOF
 overlay
 br_netfilter
 EOF
@@ -128,12 +128,10 @@ tar -C /opt/cni/bin -xzvf cni-plugins-linux-amd64-v1.6.0.tgz
 # Verify containerd installation
 containerd -v
 
-
-
 # Add Kubernetes repository and install Kubernetes components
 print_message $YELLOW "Adding Kubernetes repository and installing components..."
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 sudo apt-get update
 sudo apt-get install kubelet kubeadm kubectl -y
 sudo apt-mark hold kubelet kubeadm kubectl
@@ -153,7 +151,7 @@ sleep 1
 
 # Initialize Kubernetes cluster
 print_message $YELLOW "Initializing Kubernetes cluster..."
-kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/crio/crio.sock --ignore-preflight-errors=NumCPU
+kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///run/containerd/containerd.sock --ignore-preflight-errors=NumCPU
 sleep 1
 
 # Configure kubectl for the current user
@@ -170,12 +168,6 @@ print_message $YELLOW "Removing taints on control-plane nodes..."
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 kubectl get nodes -o wide
 sleep 1
-
-# Enable CRIU support in CRI-O
-print_message $YELLOW "Enabling CRIU support in CRI-O..."
-sed -i 's/# enable_criu_support = false/enable_criu_support = true/' /etc/crio/crio.conf
-sudo systemctl restart crio
-sleep 5
 
 # Ensure the default service account exists
 print_message $YELLOW "Ensuring the default service account exists..."
